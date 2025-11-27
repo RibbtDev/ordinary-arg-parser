@@ -1,0 +1,21 @@
+{
+  "name": "ordinary-arg-parser",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "tsc",
+    "test": "pnpm build && vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "packageManager": "pnpm@10.15.0",
+  "devDependencies": {
+    "vitest": "^4.0.14"
+  }
+}
