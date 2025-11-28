@@ -4,12 +4,16 @@ export interface ParseResult {
   [k: string]: unknown
 }
 
-export interface ParserSchemaEntry {
+export interface OptionConfig {
   name: string,
   alias?: string, // short name
   default?: unknown,
   transform?: (value: unknown) => unknown
 }
+
+type Schema = OptionConfig[]
+type SchemaMap = Map<string, OptionConfig>
+type AliasMap = Map<string, string>
 
 function isTerminalArg(arg: string) {
   return arg === '--'
@@ -63,7 +67,7 @@ function isNextArgValue(args: string[], currentIndex: number) {
   return !isOptionArg(args[currentIndex + 1])
 }
 
-function buildConfigFromSchema(schema: ParserSchemaEntry[]) {
+function buildConfigFromSchema(schema: Schema) {
   const schemaMap = new Map()
   const aliasMap = new Map()
 
@@ -78,13 +82,11 @@ function buildConfigFromSchema(schema: ParserSchemaEntry[]) {
 
 
 class OrdinaryArgParser {
-  schemaMap: Map<string, ParserSchemaEntry>
-  aliasMap: Map<string, string>
+  schemaMap: SchemaMap
+  aliasMap: AliasMap
   result: ParseResult
 
-  constructor(schema: ParserSchemaEntry[] = []) {
-    const {schemaMap, aliasMap} = buildConfigFromSchema(schema)
-
+  constructor(schemaMap: SchemaMap, aliasMap: AliasMap) {
     this.schemaMap = schemaMap
     this.aliasMap = aliasMap
     this.result = {_: []}
@@ -221,8 +223,9 @@ class OrdinaryArgParser {
 
 }
 
-export function ordinaryArgParser(args: string[] = [], schema: ParserSchemaEntry[] = []){
-  return new OrdinaryArgParser(schema).parse(args)
+export function ordinaryArgParser(args: string[] = [], schema: Schema = []){
+  const {schemaMap, aliasMap} = buildConfigFromSchema(schema)
+  return new OrdinaryArgParser(schemaMap, aliasMap).parse(args)
 }
 
 export default ordinaryArgParser
