@@ -1,15 +1,15 @@
 import { describe, expect, test } from 'vitest'
-import {OrdinaryArgParser} from './parser';
+import {ordinaryArgParser} from './parser';
 
 describe('Ordinary Arg Parser', () => {
   const baseArgs = ['file.txt', '--foo', '--bar=baz', '-mtv', '--', 'hello', 'world']
 
   test("Parses only positional args without a schema", () => {
-    const parser = new OrdinaryArgParser()
-    const result = parser.parse(baseArgs)
+    const result = ordinaryArgParser(baseArgs)
 
     const expectedResult = {
-      _: ['file.txt', 'hello', 'world'],
+    '_': ['file.txt'],
+    '--': ['hello', 'world'],
     }
 
     expect(result).toEqual(expectedResult)
@@ -20,13 +20,13 @@ describe('Ordinary Arg Parser', () => {
       {name: 'foo'},
     ]
 
-    const parser = new OrdinaryArgParser(schema)
-    const result = parser.parse(baseArgs)
-
     const expectedResult = {
-      _: ['file.txt', 'hello', 'world'],
+      '_': ['file.txt'],
+      '--': ['hello', 'world'],
       foo: null
     }
+
+    const result = ordinaryArgParser(baseArgs, schema)
 
     expect(result).toEqual(expectedResult)
   })
@@ -36,35 +36,35 @@ describe('Ordinary Arg Parser', () => {
       {name: 'foo', defaultValue: 'defaultFoo'},
     ]
 
-    const parser = new OrdinaryArgParser(schema)
-    const result = parser.parse(baseArgs)
-
     const expectedResult = {
-      _: ['file.txt', 'hello', 'world'],
+      '_': ['file.txt'],
+      '--': ['hello', 'world'],
       foo: 'defaultFoo'
     }
+
+    const result = ordinaryArgParser(baseArgs, schema)
 
     expect(result).toEqual(expectedResult)
   })
 
   // Alias - only alias and verbose + alias
   test("Parses short names", () => {
-    const args = ['-f=fooValue', '-b=baz']
+    const args = ['-f=fooValue', '-b', 'baz', '--file', 'data.csv']
     const schema = [
       {name: 'foo', alias: 'f'},
       {name: 'bar', alias: 'b'},
+      {name: 'file'},
     ]
-
-    const parser = new OrdinaryArgParser(schema)
-    const result = parser.parse(args)
 
     const expectedResult = {
       _: [],
       foo: 'fooValue',
-      bar: 'baz'
+      bar: 'baz',
+      file: 'data.csv'
     }
+
+    const result = ordinaryArgParser(args, schema)
 
     expect(result).toEqual(expectedResult)
   })
 })
-

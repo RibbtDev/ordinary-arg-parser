@@ -1,13 +1,5 @@
 
-export type ValidationError = 'missing_required_option_value'
-
 export type OptionValue = string | boolean | null
-
-export interface ParseError {
-  option: string,
-  message: string,
-  type: ValidationError
-}
 
 export interface ParseResult {
   _: string[],
@@ -39,7 +31,7 @@ function parseOption(arg: string) {
 function parseEqualsFormat(arg: string) {
   const [option, value] = arg.split('=')
 
-  return {option, value: value !== undefined ? value : null}
+  return {option, value}
 }
 
 function expandGroupedOptions(option: string) {
@@ -63,7 +55,7 @@ function isNextArgValue(args: string[], currentIndex: number) {
     return false
   }
 
-  return isOptionArg(args[currentIndex + 1])
+  return !isOptionArg(args[currentIndex + 1])
 }
 
 function buildConfigFromSchema(schema: ParserSchemaEntry[]) {
@@ -80,7 +72,7 @@ function buildConfigFromSchema(schema: ParserSchemaEntry[]) {
 }
 
 
-export class OrdinaryArgParser {
+class OrdinaryArgParser {
   schemaMap: Map<string, ParserSchemaEntry>
   aliasMap: Map<string, string>
   result: ParseResult
@@ -93,13 +85,13 @@ export class OrdinaryArgParser {
     this.result = {_: []}
   }
 
+  getAliasVerboseName(alias: string) {
+    return this.aliasMap.get(alias)
+  }
+
   getOptionConfig(option: string) {
-    let schemaKey = option
-
-    if (this.aliasMap.has(option)) {
-      schemaKey = this.aliasMap.get(option)!
-    }
-
+    // is this an alias?
+    const schemaKey = this.getAliasVerboseName(option) || option
     return this.schemaMap.get(schemaKey)
   }
 
@@ -107,14 +99,12 @@ export class OrdinaryArgParser {
     this.result['_'].push(...values)
   }
 
+  isKnownOption(option: string) {
+    return Boolean(this.getOptionConfig(option)?.name)
+  }
+
   storeOptionValue(option: string, value: OptionValue) {
-    const key = this.getOptionConfig(option)?.name
-
-    if (!key) {
-      // Skip unknown options
-      return
-    }
-
+    // A value is already present
     if (Object.hasOwn(this.result, option)) {
       const currentValue = this.result[option]
 
@@ -133,7 +123,7 @@ export class OrdinaryArgParser {
     Object.entries(this.result).forEach(([key, value]) => {
       const defaultValue = this.getOptionConfig(key)?.defaultValue
 
-      if (this.result[key] === null && value === null && defaultValue) {
+      if (value === null && defaultValue) {
         this.result[key] = defaultValue
       }
     })
@@ -144,7 +134,7 @@ export class OrdinaryArgParser {
       const arg = args[i]
 
       if (isTerminalArg(arg)) {
-        this.storePositionalValues(...args.slice(i+1))
+        this.result['--'] = args.slice(i+1)
         break
       }
 
@@ -152,14 +142,25 @@ export class OrdinaryArgParser {
         const {hyphenCount, option} = parseOption(arg)
 
         if (isNegativeOption(option)) {
-          this.storeOptionValue(extractNegativeOption(option), false)
+          const optionName = extractNegativeOption(option)
+          if (this.isKnownOption(optionName)) { this.storeOptionValue(optionName, false) }
+
           continue
         }
 
         if (hyphenCount === 2) {
           // Verbose option
-          const {option: optionName, value} = parseEqualsFormat(option)
-          this.storeOptionValue(optionName, value)
+          const {option: optionName, value: inlineValue} = parseEqualsFormat(option)
+
+          if (this.isKnownOption(optionName)) { 
+            if (inlineValue) {
+              this.storeOptionValue(optionName, inlineValue)
+            } else if (isNextArgValue(args, i)) {
+              this.storeOptionValue(optionName, args[++i]) // consume the value and advance iterator
+            } else {
+              this.storeOptionValue(optionName, null)
+            }
+          }
 
           continue
         }
@@ -170,7 +171,7 @@ export class OrdinaryArgParser {
 
         for (let j = 0; j < optionsToProcess.length; j++) {
           const arg = optionsToProcess[j]
-          const name = this.getOptionConfig(arg)?.name
+          const name = this.getAliasVerboseName(arg)
 
           if (!name) {
             continue
@@ -182,6 +183,8 @@ export class OrdinaryArgParser {
               this.storeOptionValue(name, inlineValue)
             } else if (isNextArgValue(args, i)) {
               this.storeOptionValue(name, args[++i]) // consume the value and advance iterator
+            } else {
+              this.storeOptionValue(name, true)
             }
           } else {
             this.storeOptionValue(name, true)
@@ -202,5 +205,8 @@ export class OrdinaryArgParser {
 
 }
 
-export default OrdinaryArgParser
+export function ordinaryArgParser(args: string[] = [], schema: ParserSchemaEntry[] = []){
+  return new OrdinaryArgParser(schema).parse(args)
+}
 
+export default ordinaryArgParser
