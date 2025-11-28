@@ -27,7 +27,7 @@ function parseOption(arg: string) {
 }
 
 function parseEqualsFormat(arg: string) {
-  const [option, value] = arg.split('=')
+  const [option, value] = arg.split('=', 2)
 
   return {option, value}
 }
