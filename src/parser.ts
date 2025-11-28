@@ -1,16 +1,14 @@
 
-export type OptionValue = string | boolean | null
-
 export interface ParseResult {
   _: string[],
-  [k: string]: OptionValue | OptionValue[]
+  [k: string]: unknown
 }
 
 export interface ParserSchemaEntry {
   name: string,
   alias?: string, // short name
-  required?: boolean,
-  defaultValue?: OptionValue
+  default?: unknown,
+  transform?: (value: unknown) => unknown
 }
 
 function isTerminalArg(arg: string) {
@@ -103,7 +101,7 @@ class OrdinaryArgParser {
     return Boolean(this.getOptionConfig(option)?.name)
   }
 
-  storeOptionValue(option: string, value: OptionValue) {
+  storeOptionValue(option: string, value: unknown) {
     // A value is already present
     if (Object.hasOwn(this.result, option)) {
       const currentValue = this.result[option]
@@ -121,10 +119,20 @@ class OrdinaryArgParser {
 
   applyDefaultValues() {
     Object.entries(this.result).forEach(([key, value]) => {
-      const defaultValue = this.getOptionConfig(key)?.defaultValue
+      const defaultValue = this.getOptionConfig(key)?.default
 
-      if (value === null && defaultValue) {
+      if (value === null && defaultValue !== undefined) {
         this.result[key] = defaultValue
+      }
+    })
+  }
+
+  applyTransforms() {
+    Object.entries(this.result).forEach(([key, value]) => {
+      const transform = this.getOptionConfig(key)?.transform
+      
+      if (transform) {
+        this.result[key] = transform(value)
       }
     })
   }
@@ -153,7 +161,7 @@ class OrdinaryArgParser {
           const {option: optionName, value: inlineValue} = parseEqualsFormat(option)
 
           if (this.isKnownOption(optionName)) { 
-            if (inlineValue) {
+            if (inlineValue !== undefined) {
               this.storeOptionValue(optionName, inlineValue)
             } else if (isNextArgValue(args, i)) {
               this.storeOptionValue(optionName, args[++i]) // consume the value and advance iterator
@@ -179,7 +187,7 @@ class OrdinaryArgParser {
 
           if (j === optionsToProcess.length - 1) {
             // Last option
-            if (inlineValue) {
+            if (inlineValue !== undefined) {
               this.storeOptionValue(name, inlineValue)
             } else if (isNextArgValue(args, i)) {
               this.storeOptionValue(name, args[++i]) // consume the value and advance iterator
@@ -199,6 +207,7 @@ class OrdinaryArgParser {
     }
 
     this.applyDefaultValues()
+    this.applyTransforms()
 
     return this.result
   }

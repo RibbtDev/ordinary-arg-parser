@@ -33,7 +33,7 @@ describe('Ordinary Arg Parser', () => {
 
   test("Applies default values from schema for options without a value", () => {
     const schema = [
-      {name: 'foo', defaultValue: 'defaultFoo'},
+      {name: 'foo', default: 'defaultFoo'},
     ]
 
     const expectedResult = {
@@ -61,6 +61,24 @@ describe('Ordinary Arg Parser', () => {
       foo: 'fooValue',
       bar: 'baz',
       file: 'data.csv'
+    }
+
+    const result = ordinaryArgParser(args, schema)
+
+    expect(result).toEqual(expectedResult)
+  })
+
+  test("Applies tranforms on result", () => {
+    const args = ['show', '--file', 'data.csv', '--count=5']
+    const schema = [
+      {name: 'file'},
+      {name: 'count', transform: (value) => Number.parseInt(value)}
+    ]
+
+    const expectedResult = {
+      _: ['show'],
+      file: 'data.csv',
+      count: 5
     }
 
     const result = ordinaryArgParser(args, schema)
