@@ -27,7 +27,14 @@ function parseOption(arg: string) {
 }
 
 function parseEqualsFormat(arg: string) {
-  const [option, value] = arg.split('=', 2)
+  const equalIndex = arg.indexOf("=")
+
+  if (equalIndex === -1) {
+    return {option: arg, value: undefined}
+  }
+  
+  const option = arg.slice(0, equalIndex)
+  const value = arg.slice(equalIndex + 1)
 
   return {option, value}
 }
