@@ -17,7 +17,23 @@ describe('Ordinary Arg Parser', () => {
 
   test("Skips options absent in schema", () => {
     const schema = [
-      {name: 'foo'},
+      {name: 'foo', kind: 'flag'},
+    ]
+
+    const expectedResult = {
+      '_': ['file.txt'],
+      '--': ['hello', 'world'],
+      foo: true
+    }
+
+    const result = ordinaryArgParser(baseArgs, schema)
+
+    expect(result).toEqual(expectedResult)
+  })
+
+  test("Applies default values from schema for options without a value", () => {
+    const schema = [
+      {name: 'foo', kind: 'value', default: 'defaultFoo'},
     ]
 
     const expectedResult = {
@@ -31,29 +47,13 @@ describe('Ordinary Arg Parser', () => {
     expect(result).toEqual(expectedResult)
   })
 
-  test("Applies default values from schema for options without a value", () => {
-    const schema = [
-      {name: 'foo', default: 'defaultFoo'},
-    ]
-
-    const expectedResult = {
-      '_': ['file.txt'],
-      '--': ['hello', 'world'],
-      foo: 'defaultFoo'
-    }
-
-    const result = ordinaryArgParser(baseArgs, schema)
-
-    expect(result).toEqual(expectedResult)
-  })
-
   // Alias - only alias and verbose + alias
   test("Parses short names", () => {
     const args = ['-f=fooValue', '-b', 'baz', '--file', 'data.csv']
     const schema = [
-      {name: 'foo', alias: 'f'},
-      {name: 'bar', alias: 'b'},
-      {name: 'file'},
+      {name: 'foo', alias: 'f', kind: 'value'},
+      {name: 'bar', alias: 'b', kind: 'value'},
+      {name: 'file', kind: 'value'},
     ]
 
     const expectedResult = {
@@ -69,16 +69,16 @@ describe('Ordinary Arg Parser', () => {
   })
 
   test("Applies tranforms on result", () => {
-    const args = ['show', '--file', 'data.csv', '--count=5']
+    const args = ['show', '--file', 'data.csv', '--count', '-5']
     const schema = [
       {name: 'file'},
-      {name: 'count', transform: (value) => Number.parseInt(value)}
+      {name: 'count'}
     ]
 
     const expectedResult = {
       _: ['show'],
       file: 'data.csv',
-      count: 5
+      count: '-5'
     }
 
     const result = ordinaryArgParser(args, schema)
