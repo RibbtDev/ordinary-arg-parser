@@ -128,21 +128,15 @@ class OrdinaryArgParser {
     this.result._.push(...values);
   }
 
-  isKnownOption(option: string) {
-    return this.configMap.has(this.getAliasVerboseName(option) || option);
-  }
-
   storeOptionValue(
     option: string,
     value: unknown,
     duplicateHandling: DuplicateHandling = "last-wins"
   ) {
-    // Default: DuplicateHandling = 'last-win'
-
     if (Object.hasOwn(this.result, option)) {
       const currentValue = this.result[option];
 
-      if (duplicateHandling === "first-wins" && currentValue) {
+      if (duplicateHandling === "first-wins") {
         return;
       }
 
@@ -189,11 +183,11 @@ class OrdinaryArgParser {
     // Handle GNU-style "--no-foo" for boolean flags
     if (isNegativeOption(rawOption)) {
       const config = this.getOptionConfig(extractNegativeOption(rawOption));
-      if (!config) {
+      if (!config || config.kind !== 'flag') {
         return i;
       }
 
-      this.storeOptionValue(config.name, false);
+      this.storeOptionValue(config.name, false, config.duplicateHandling);
       return i;
     }
 
@@ -202,16 +196,16 @@ class OrdinaryArgParser {
       return i;
     }
 
-    const { name, kind } = config;
+    const { name, kind, duplicateHandling } = config;
 
     if (kind === "flag") {
       // Boolean flag
       // Works with common mistakes like --flag=[false | true]
 
       if (inlineValue === "false") {
-        this.storeOptionValue(name, false);
+        this.storeOptionValue(name, false, duplicateHandling);
       } else {
-        this.storeOptionValue(name, true);
+        this.storeOptionValue(name, true, duplicateHandling);
       }
 
       return i;
@@ -219,12 +213,12 @@ class OrdinaryArgParser {
 
     // Required argument
     if (inlineValue !== undefined) {
-      this.storeOptionValue(name, inlineValue);
+      this.storeOptionValue(name, inlineValue, duplicateHandling);
       return i;
     } else if (isNextArgValue(args, i)) {
-      this.storeOptionValue(name, args[++i]); // consume the value and advance iterator
+      this.storeOptionValue(name, args[++i], duplicateHandling); // consume the value and advance iterator
     } else {
-      this.storeOptionValue(name, null);
+      this.storeOptionValue(name, null, duplicateHandling);
     }
 
     return i;
@@ -245,11 +239,11 @@ class OrdinaryArgParser {
         continue;
       }
 
-      const { name, kind } = config;
+      const { name, kind, duplicateHandling } = config;
 
       // Boolean flag
       if (kind === "flag") {
-        this.storeOptionValue(name, true);
+        this.storeOptionValue(name, true, duplicateHandling);
         continue;
       }
 
@@ -257,11 +251,11 @@ class OrdinaryArgParser {
       if (j === optionsToProcess.length - 1) {
         // Last option
         if (inlineValue !== undefined) {
-          this.storeOptionValue(name, inlineValue);
+          this.storeOptionValue(name, inlineValue, duplicateHandling);
         } else if (isNextArgValue(args, i)) {
-          this.storeOptionValue(name, args[++i]); // consume the value and advance iterator
+          this.storeOptionValue(name, args[++i], duplicateHandling); // consume the value and advance iterator
         } else {
-          this.storeOptionValue(name, null);
+          this.storeOptionValue(name, null, duplicateHandling);
         }
       }
     }
@@ -275,7 +269,7 @@ class OrdinaryArgParser {
 
       // "--" terminates option parsing
       if (arg === "--") {
-        this.result["--"] = args.slice(i + 1);
+        this.result._.push(...args.slice(i + 1))
         break;
       }
 

@@ -8,8 +8,7 @@ describe('Ordinary Arg Parser', () => {
     const result = ordinaryArgParser(baseArgs)
 
     const expectedResult = {
-    '_': ['file.txt'],
-    '--': ['hello', 'world'],
+    '_': ['file.txt', 'hello', 'world'],
     }
 
     expect(result).toEqual(expectedResult)
@@ -21,8 +20,7 @@ describe('Ordinary Arg Parser', () => {
     ]
 
     const expectedResult = {
-      '_': ['file.txt'],
-      '--': ['hello', 'world'],
+      '_': ['file.txt', 'hello', 'world'],
       foo: true
     }
 
@@ -37,8 +35,7 @@ describe('Ordinary Arg Parser', () => {
     ]
 
     const expectedResult = {
-      '_': ['file.txt'],
-      '--': ['hello', 'world'],
+      '_': ['file.txt', 'hello', 'world'],
       foo: null
     }
 
