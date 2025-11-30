@@ -3,8 +3,8 @@
   "version": "1.1.0",
   "description": "A lightweight GNU-convention compliant command-line argument parser",
   "scripts": {
-    "build": "tsc",
-    "test": "pnpm build && vitest"
+    "build": "tsdown src/parser.ts --format=esm --format=cjs --platform=neutral",
+    "test": "vitest"
   },
   "keywords": [
     "argument",
@@ -25,14 +25,25 @@
   "homepage": "https://github.com/RibbtDev/ordinary-arg-parser",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/parser.js",
-  "exports": "./dist/parser.js",
-  "types": "./dist/parser.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/parser.d.ts",
+        "default": "./dist/parser.js"
+      },
+      "require": {
+        "types": "./dist/parser.d.cts",
+        "default": "./dist/parser.cjs"
+      }
+    }
+  },
   "files": [
     "dist"
   ],
   "packageManager": "pnpm@10.24.0",
   "devDependencies": {
+    "tsdown": "0.17.0-beta.4",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.14"
   }
 }
