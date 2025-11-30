@@ -25,9 +25,9 @@
   "homepage": "https://github.com/RibbtDev/ordinary-arg-parser",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.js",
-  "exports": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/parser.js",
+  "exports": "./dist/parser.js",
+  "types": "./dist/parser.d.ts",
   "files": [
     "dist"
   ],
