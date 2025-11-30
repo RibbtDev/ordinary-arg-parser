@@ -1,8 +1,7 @@
 # ordinary-arg-parser
 
-A lightweight GNU-convention compliant command-line argument parser. This library is a **parsing primitive** that extracts structure from argument strings.
+A lightweight GNU-convention compliant command-line argument parser.
 
-## Quick Usage
 ```typescript
 import ordinaryArgParser from 'ordinary-arg-parser';
 
@@ -156,7 +155,7 @@ Numbers (including negative and floats) are treated as values, not options:
 
 **Transforms:**
 
-Applied to both parsed values and defaults. If transform throws, parsing fails.
+Applied to both parsed values and defaults. If transform throws, wrap parser in try-catch.
 
 **Result Structure:**
 
@@ -199,10 +198,6 @@ The parser doesn't check for:
 - Multi-character aliases
 - Empty names
 
-### Transform Errors Propagate
-
-If a transform function throws, wrap parser in try-catch.
-
 ### Shell Expansion Happens First
 
 Globs, quotes, and variables are expanded by the shell before your program sees them:
@@ -214,20 +209,9 @@ node app.js $VAR         # Shell expands variable first
 
 This is standard behavior, not a limitation. If you need glob patterns, use a library like `glob`.
 
-### Interleaved Options and Operands
-
-GNU conventions allow mixing, which mostly works:
-```typescript
-'file1.txt --verbose file2.txt'  // Works
-```
-
-For guaranteed predictable behavior, place all options before operands.
-
 ## Further Reading
 
-The ordinary-arg-parser implements GNU-style command-line argument parsing conventions. To understand the standards and design principles behind these conventions, consult these authoritative references:
-
-### Standards and Specifications
+The ordinary-arg-parser implements GNU-style command-line argument parsing conventions. To understand the standards and design principles behind these conventions, check these references:
 
 - **POSIX** defines the core: short options (`-v`), option arguments, and `--` terminator
 - **GNU** extends with: long options (`--verbose`), equals syntax (`--output=file`), and negation (`--no-verify`)
