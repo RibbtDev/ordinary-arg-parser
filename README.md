@@ -3,7 +3,11 @@
 A lightweight GNU-convention compliant command-line argument parser.
 
 ```typescript
-import ordinaryArgParser from 'ordinary-arg-parser';
+// Node.js (CommonJS)
+const { ordinaryArgParser } = require("ordinary-arg-parser");
+
+// ES Module
+// import ordinaryArgParser from 'ordinary-arg-parser';
 
 // Git-like commit command demonstrating core features
 const result = ordinaryArgParser(
