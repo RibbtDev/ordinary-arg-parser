@@ -13,8 +13,10 @@
   "main": "./dist/index.js",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
-  "packageManager": "pnpm@10.15.0",
+  "files": [
+    "dist"
+  ],
+  "packageManager": "pnpm@10.24.0",
   "devDependencies": {
     "vitest": "^4.0.14"
   }

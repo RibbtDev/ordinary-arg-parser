@@ -131,9 +131,9 @@ class OrdinaryArgParser {
   storeOptionValue(
     option: string,
     value: unknown,
-    duplicateHandling: DuplicateHandling = "last-wins"
+    duplicateHandling: DuplicateHandling = "last-wins",
   ) {
-    if (Object.hasOwn(this.result, option)) {
+    if (Object.hasOwn(this.result, option) && this.result[option] !== null) {
       const currentValue = this.result[option];
 
       if (duplicateHandling === "first-wins") {
@@ -183,7 +183,7 @@ class OrdinaryArgParser {
     // Handle GNU-style "--no-foo" for boolean flags
     if (isNegativeOption(rawOption)) {
       const config = this.getOptionConfig(extractNegativeOption(rawOption));
-      if (!config || config.kind !== 'flag') {
+      if (!config || config.kind !== "flag") {
         return i;
       }
 
@@ -243,7 +243,12 @@ class OrdinaryArgParser {
 
       // Boolean flag
       if (kind === "flag") {
-        this.storeOptionValue(name, true, duplicateHandling);
+        if (inlineValue === "false") {
+          this.storeOptionValue(name, false, duplicateHandling);
+        } else {
+          this.storeOptionValue(name, true, duplicateHandling);
+        }
+
         continue;
       }
 
@@ -257,6 +262,15 @@ class OrdinaryArgParser {
         } else {
           this.storeOptionValue(name, null, duplicateHandling);
         }
+      } else {
+        // use eveything after the option as value
+        // e.g. "-oattached.txt" becomes o: attached.txt
+        this.storeOptionValue(
+          name,
+          optionsToProcess.slice(j + 1).join(""),
+          duplicateHandling,
+        );
+        break;
       }
     }
 
@@ -269,7 +283,7 @@ class OrdinaryArgParser {
 
       // "--" terminates option parsing
       if (arg === "--") {
-        this.result._.push(...args.slice(i + 1))
+        this.result._.push(...args.slice(i + 1));
         break;
       }
 
@@ -300,7 +314,7 @@ class OrdinaryArgParser {
 
 export function ordinaryArgParser(
   args: string[] = [],
-  optionsConfig: OptionsConfig = []
+  optionsConfig: OptionsConfig = [],
 ) {
   const { configMap, aliasMap } = buildConfigMaps(optionsConfig);
   return new OrdinaryArgParser(configMap, aliasMap).parse(args);
