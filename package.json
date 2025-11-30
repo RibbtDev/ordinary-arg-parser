@@ -1,6 +1,6 @@
 {
   "name": "ordinary-arg-parser",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A lightweight GNU-convention compliant command-line argument parser",
   "scripts": {
     "build": "tsdown src/parser.ts --format=esm --format=cjs --platform=neutral",
