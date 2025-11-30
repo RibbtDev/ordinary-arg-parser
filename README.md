@@ -253,5 +253,3 @@ Covers the practical implementation details that this library follows, including
 MIT
 
 ---
-
-**ordinary-arg-parser** — A focused parsing primitive for building GNU-style CLI tools.

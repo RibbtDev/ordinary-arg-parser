@@ -1,14 +1,29 @@
 {
   "name": "ordinary-arg-parser",
   "version": "1.0.0",
-  "description": "",
+  "description": "A lightweight GNU-convention compliant command-line argument parser",
   "scripts": {
     "build": "tsc",
     "test": "pnpm build && vitest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "argument",
+    "args",
+    "option",
+    "parser",
+    "cli",
+    "command"
+  ],
+  "author": {
+    "name": "Rohit Kumar",
+    "url": "https://github.com/RibbtDev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RibbtDev/ordinary-arg-parser"
+  },
+  "homepage": "https://github.com/RibbtDev/ordinary-arg-parser",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "exports": "./dist/index.js",
