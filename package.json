@@ -4,7 +4,8 @@
   "description": "A lightweight GNU-convention compliant command-line argument parser",
   "scripts": {
     "build": "tsdown src/parser.ts --format=esm --format=cjs --platform=neutral --dts",
-    "test": "vitest"
+    "test": "vitest",
+    "prepare": "pnpm test && pnpm build"
   },
   "keywords": [
     "argument",

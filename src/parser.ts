@@ -124,10 +124,6 @@ class OrdinaryArgParser {
     return this.configMap.get(configKey);
   }
 
-  storePositionalValues(...values: string[]) {
-    this.result._.push(...values);
-  }
-
   storeOptionValue(
     option: string,
     value: unknown,
@@ -301,7 +297,7 @@ class OrdinaryArgParser {
         }
       } else {
         // Positional argument
-        this.storePositionalValues(arg);
+        this.result._.push(arg);
       }
     }
 
