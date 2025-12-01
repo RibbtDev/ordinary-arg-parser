@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import ordinaryArgParser from "./parser";
+import ordinaryArgParser, { OptionsConfig } from "./parser";
 
 describe("ordinaryArgParser - Complete Specification Coverage", () => {
   it("Test 1: Options, clustering, negation, numbers, duplicates, and transforms", () => {
     // Covers: short/long options, clustering, values, negation, numbers, duplicate handling, transforms
-    const config = [
+    const config: OptionsConfig = [
       // Flags with various duplicate handling
       {
         name: "verbose",
@@ -33,20 +33,20 @@ describe("ordinaryArgParser - Complete Specification Coverage", () => {
         kind: "value",
         alias: "n",
         default: "0",
-        transform: (v) => parseInt(v, 10),
+        transform: (v) => parseInt(v as string, 10),
         duplicateHandling: "first-wins",
       },
       {
         name: "offset",
         kind: "value",
         default: "0",
-        transform: (v) => parseFloat(v),
+        transform: (v) => parseFloat(v as string),
       },
       {
         name: "ratio",
         kind: "value",
         default: "1.0",
-        transform: (v) => parseFloat(v),
+        transform: (v) => parseFloat(v as string),
       },
       {
         name: "tags",
@@ -142,7 +142,7 @@ describe("ordinaryArgParser - Complete Specification Coverage", () => {
   it("Test 2: Clustered values, defaults, space-separated long options, and edge cases", () => {
     // Covers: clustering with values, long option space-separated values, defaults,
     // interleaved operands, numbers as positional, hyphen-alone edge case
-    const config = [
+    const config: OptionsConfig = [
       { name: "archive", kind: "flag", alias: "a" },
       { name: "extract", kind: "flag", alias: "x" },
       { name: "file", kind: "value", alias: "f", default: "archive.tar" },
@@ -163,13 +163,13 @@ describe("ordinaryArgParser - Complete Specification Coverage", () => {
         name: "threads",
         kind: "value",
         default: "1",
-        transform: (v) => parseInt(v, 10),
+        transform: (v) => parseInt(v as string, 10),
       },
       {
         name: "depth",
         kind: "value",
         default: "0",
-        transform: (v) => parseInt(v, 10),
+        transform: (v) => parseInt(v as string, 10),
       },
       { name: "interactive", kind: "flag", alias: "i", default: false },
       { name: "recursive", kind: "flag", alias: "r", default: false },
@@ -231,5 +231,36 @@ describe("ordinaryArgParser - Complete Specification Coverage", () => {
       interactive: true, // From cluster -ir
       recursive: true, // From cluster -ir
     });
+  });
+
+  it("Test 4: MissingValueError - throws with correct information", () => {
+    const config: OptionsConfig = [
+      { name: "output", kind: "value", alias: "o", default: "out.txt" },
+      { name: "verbose", kind: "flag", alias: "v" },
+    ];
+
+    try {
+      ordinaryArgParser(["--output", "--verbose"], config);
+    } catch (error) {
+      expect(error.code).toBe("MISSING_VALUE");
+      expect(error.argument).toBe("output");
+      expect(error.rawArgs).toEqual(["--output", "--verbose"]);
+      expect(error.message).toContain("Argument 'output'");
+      expect(error.message).toContain("requires a value");
+    }
+  });
+
+  it("Test 5: MissingValueError - at end of arguments", () => {
+    const config: OptionsConfig = [
+      { name: "port", kind: "value", alias: "p", default: "3000" },
+    ];
+
+    // Missing value: --port at the end with no value
+    try {
+      ordinaryArgParser(["--port"], config);
+    } catch (error) {
+      expect(error.code).toBe("MISSING_VALUE");
+      expect(error.argument).toBe("port");
+    }
   });
 });

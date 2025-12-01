@@ -1,3 +1,5 @@
+import { UnknownArgumentError, MissingValueError } from "./errors.js";
+
 export interface ParseResult {
   _: string[];
   [k: string]: unknown;
@@ -104,8 +106,8 @@ function buildConfigMaps(optionsConfig: OptionsConfig) {
 }
 
 class OrdinaryArgParser {
-  configMap: ConfigMap;
-  aliasMap: AliasMap;
+  readonly configMap: ConfigMap;
+  readonly aliasMap: AliasMap;
   result: ParseResult;
 
   constructor(configMap: ConfigMap, aliasMap: AliasMap) {
@@ -179,7 +181,11 @@ class OrdinaryArgParser {
     // Handle GNU-style "--no-foo" for boolean flags
     if (isNegativeOption(rawOption)) {
       const config = this.getOptionConfig(extractNegativeOption(rawOption));
-      if (!config || config.kind !== "flag") {
+      if (!config) {
+        throw new UnknownArgumentError(rawOption, args);
+      }
+
+      if (config.kind !== "flag") {
         return i;
       }
 
@@ -189,7 +195,7 @@ class OrdinaryArgParser {
 
     const config = this.getOptionConfig(rawOption);
     if (!config) {
-      return i;
+      throw new UnknownArgumentError(rawOption, args);
     }
 
     const { name, kind, duplicateHandling } = config;
@@ -214,7 +220,7 @@ class OrdinaryArgParser {
     } else if (isNextArgValue(args, i)) {
       this.storeOptionValue(name, args[++i], duplicateHandling); // consume the value and advance iterator
     } else {
-      this.storeOptionValue(name, null, duplicateHandling);
+      throw new MissingValueError(name, args);
     }
 
     return i;
@@ -232,7 +238,7 @@ class OrdinaryArgParser {
       const config = this.getOptionConfig(arg);
 
       if (!config) {
-        continue;
+        throw new UnknownArgumentError(arg, args);
       }
 
       const { name, kind, duplicateHandling } = config;
@@ -256,7 +262,7 @@ class OrdinaryArgParser {
         } else if (isNextArgValue(args, i)) {
           this.storeOptionValue(name, args[++i], duplicateHandling); // consume the value and advance iterator
         } else {
-          this.storeOptionValue(name, null, duplicateHandling);
+          throw new MissingValueError(name, args);
         }
       } else {
         // use eveything after the option as value
@@ -307,6 +313,12 @@ class OrdinaryArgParser {
     return this.result;
   }
 }
+
+/**
+ * Parses command-line (CLI) arguments
+ *
+ * @throws UnknownArgumentError | MissingValueError
+ */
 
 export function ordinaryArgParser(
   args: string[] = [],
