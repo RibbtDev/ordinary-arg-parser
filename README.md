@@ -34,16 +34,16 @@ console.dir(result);
 Run it with:
 
 ```bash
-node ./cli.js -am Initial commit --author=John --no-verify file.js
+node ./cli.js -am "Initial commit" --author="John" --no-verify file.js
 ```
 
 You'll see:
 
 ```typescript
 {
-  _: [ 'commit', 'file.js' ],
+  _: [ 'file.js' ],
   all: true,
-  message: 'Initial',
+  message: 'Initial commit',
   author: 'John',
   verify: false
 }
