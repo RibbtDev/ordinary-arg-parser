@@ -46,15 +46,14 @@ const result = ordinaryArgParser(
 #### `ordinaryArgParser(args, config)`
 
 Parameters:
-
 - `args: string[]` — An array of argument strings to parse. This is typically `process.argv.slice(2)` in Node.js app.
 - `config: OptionsConfig` — An array of option definitions that describe the expected arguments and their behavior.
 
 Returns:
-`ParseResult` — An object containing the parsing results. Options are stored by their `name` (never by `alias`), and positional arguments are stored in `_`.
+- `ParseResult` — An object containing the parsing results. Options are stored by their `name` (never by `alias`), and positional arguments are stored in `_`.
 
 Throws:
-The parser throws `UnknownArgumentError` or `MissingValueError` when it encounters invalid arguments.
+- The parser throws `UnknownArgumentError` or `MissingValueError` when it encounters invalid arguments.
 
 #### Option Configuration
 
@@ -93,7 +92,13 @@ Numbers are always treated as values, never as options. This includes negative n
 
 #### Duplicate Handling
 
-When an option appears multiple times, you can control the behavior through the `duplicateHandling` property. The default strategy is `'last-wins'`, where `--output a.txt --output b.txt` results in `output: 'b.txt'`. The `'first-wins'` strategy does the opposite, keeping `'a.txt'`. The `'accumulate'` strategy collects all values into an array, so `--exclude a --exclude b` produces `exclude: ['a', 'b']`.
+When an option appears multiple times, you can control the behavior through the `duplicateHandling` property. 
+
+The default strategy is `'last-wins'`, where `--output a.txt --output b.txt` results in `output: 'b.txt'`. 
+
+The `'first-wins'` strategy does the opposite, keeping `'a.txt'`. 
+
+The `'accumulate'` strategy collects all values into an array, so `--exclude a --exclude b` produces `exclude: ['a', 'b']`.
 
 #### Transforms
 
