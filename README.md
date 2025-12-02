@@ -94,11 +94,9 @@ Numbers are always treated as values, never as options. This includes negative n
 
 When an option appears multiple times, you can control the behavior through the `duplicateHandling` property. 
 
-The default strategy is `'last-wins'`, where `--output a.txt --output b.txt` results in `output: 'b.txt'`. 
-
-The `'first-wins'` strategy does the opposite, keeping `'a.txt'`. 
-
-The `'accumulate'` strategy collects all values into an array, so `--exclude a --exclude b` produces `exclude: ['a', 'b']`.
+- The default strategy is `'last-wins'`, where `--output a.txt --output b.txt` results in `output: 'b.txt'`. 
+- The `'first-wins'` strategy does the opposite, keeping `'a.txt'`. 
+- The `'accumulate'` strategy collects all values into an array, so `--exclude a --exclude b` produces `exclude: ['a', 'b']`.
 
 #### Transforms
 
