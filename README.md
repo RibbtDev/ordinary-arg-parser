@@ -41,11 +41,11 @@ You'll see:
 
 ```typescript
 {
-    _: ['file.js'],
-    all: true,
-    message: 'Initial commit',
-    verify: false,
-    author: 'John'
+  _: [ 'commit', 'file.js' ],
+  all: true,
+  message: 'Initial',
+  author: 'John',
+  verify: false
 }
 ```
 
