@@ -10,19 +10,16 @@ A lightweight command-line argument parser for Node.js and browsers. It follows 
 npm install ordinary-arg-parser
 ```
 
-### Try It Out
+### Try It
+
+Create a file `cli.js` with the following code:
 
 ```typescript
-// CommonJS
+// cli.js
 const { ordinaryArgParser } = require("ordinary-arg-parser");
 
-// ES Module / Browser
-import { ordinaryArgParser } from "ordinary-arg-parser";
-
 const result = ordinaryArgParser(
-    // Node.js - value of `process.argv.slice(2)`
-    // Browser - Command-line input string split on whitespaces
-    ['-am', 'Initial commit', '--author=John', '--no-verify', 'file.js'],
+    process.argv.slice(2),
     [
         { name: 'all', kind: 'flag', alias: 'a' },
         { name: 'message', kind: 'value', alias: 'm', default: '' },
@@ -31,7 +28,18 @@ const result = ordinaryArgParser(
     ]
 );
 
-// Returns
+console.dir(result);
+```
+
+Run it with:
+
+```bash
+node ./cli.js -am Initial commit --author=John --no-verify file.js
+```
+
+You'll see:
+
+```typescript
 {
     _: ['file.js'],
     all: true,
@@ -39,6 +47,14 @@ const result = ordinaryArgParser(
     verify: false,
     author: 'John'
 }
+```
+
+For browser or ES module environments, import the module and pass your command string split into an array:
+
+```typescript
+import { ordinaryArgParser } from "ordinary-arg-parser";
+
+const result = ordinaryArgParser(cliInputString.split(" "), config)
 ```
 
 ## Usage
