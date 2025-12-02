@@ -1,29 +1,29 @@
 import { UnknownArgumentError, MissingValueError } from "./errors.js";
 
 export interface ParseResult {
-  _: string[];
-  [k: string]: unknown;
+    _: string[];
+    [k: string]: unknown;
 }
 
 type DuplicateHandling = "accumulate" | "last-wins" | "first-wins";
 
 interface BaseOptionConfig {
-  name: string;
-  alias?: string; // short name, single character
-  duplicateHandling?: DuplicateHandling;
-  transform?: (value: unknown) => unknown;
+    name: string;
+    alias?: string; // short name, single character
+    duplicateHandling?: DuplicateHandling;
+    transform?: (value: unknown) => unknown;
 }
 
 // Flags: no value, default is optional (often boolean)
 interface NoneOptionConfig extends BaseOptionConfig {
-  kind: "flag";
-  default?: unknown;
+    kind: "flag";
+    default?: unknown;
 }
 
 // Value options: must have a default
 interface ValueOptionConfig extends BaseOptionConfig {
-  kind: "value";
-  default: unknown; // REQUIRED when kind === 'value'
+    kind: "value";
+    default: unknown; // REQUIRED when kind === 'value'
 }
 
 export type OptionConfig = NoneOptionConfig | ValueOptionConfig;
@@ -32,286 +32,294 @@ type ConfigMap = Map<string, OptionConfig>;
 type AliasMap = Map<string, string>;
 
 function isNumericRegex(str: string) {
-  return /^-?\d+(\.\d+)?$/.test(str);
+    return /^-?\d+(\.\d+)?$/.test(str);
 }
 
 // Strip leading "-" or "--" and return count + remainder.
 function stripHyphens(arg: string) {
-  const hyphenCount = [...arg].findIndex((a) => a !== "-");
-  const content = arg.slice(hyphenCount);
+    const hyphenCount = [...arg].findIndex((a) => a !== "-");
+    const content = arg.slice(hyphenCount);
 
-  return { hyphenCount, content };
+    return { hyphenCount, content };
 }
 
 // Treat "-" as positional (matches common GNU tooling).
 // Any other string starting with "-" is considered an option candidate.
 // Negative numbers are treated as values
 function isOptionArg(arg: string) {
-  if (arg.length < 2) {
-    return false;
-  }
+    if (arg.length < 2) {
+        return false;
+    }
 
-  return arg.startsWith("-") && !isNumericRegex(arg);
+    return arg.startsWith("-") && !isNumericRegex(arg);
 }
 
 // Split "foo=bar" into ("foo", "bar"), or ("foo", undefined) if no "=".
 function parseEqualsFormat(arg: string) {
-  const equalIndex = arg.indexOf("=");
+    const equalIndex = arg.indexOf("=");
 
-  if (equalIndex === -1) {
-    return { rawOption: arg, inlineValue: undefined };
-  }
+    if (equalIndex === -1) {
+        return { rawOption: arg, inlineValue: undefined };
+    }
 
-  const rawOption = arg.slice(0, equalIndex);
-  const inlineValue = arg.slice(equalIndex + 1);
+    const rawOption = arg.slice(0, equalIndex);
+    const inlineValue = arg.slice(equalIndex + 1);
 
-  return { rawOption, inlineValue };
+    return { rawOption, inlineValue };
 }
 
 // For short options, expand "abc" to ['a', 'b', 'c'].
 function expandShortCluster(option: string) {
-  return option.split("");
+    return option.split("");
 }
 
 // GNU-style negative long options: "--no-foo"
 function isNegativeOption(option: string) {
-  return option.startsWith("no-");
+    return option.startsWith("no-");
 }
 
 function extractNegativeOption(option: string) {
-  return option.slice(3); // drop "no-"
+    return option.slice(3); // drop "no-"
 }
 
 function isNextArgValue(args: string[], currentIndex: number) {
-  if (currentIndex >= args.length - 1) {
-    return false;
-  }
+    if (currentIndex >= args.length - 1) {
+        return false;
+    }
 
-  return !isOptionArg(args[currentIndex + 1]);
+    return !isOptionArg(args[currentIndex + 1]);
 }
 
 function buildConfigMaps(optionsConfig: OptionsConfig) {
-  const configMap = new Map();
-  const aliasMap = new Map();
+    const configMap = new Map();
+    const aliasMap = new Map();
 
-  optionsConfig.forEach((entry) => {
-    const { name, alias } = entry;
-    configMap.set(name, entry);
-    if (alias) {
-      aliasMap.set(alias, name);
-    } // alias points to verbose name config
-  });
+    optionsConfig.forEach((entry) => {
+        const { name, alias } = entry;
+        configMap.set(name, entry);
+        if (alias) {
+            aliasMap.set(alias, name);
+        } // alias points to verbose name config
+    });
 
-  return { configMap, aliasMap };
+    return { configMap, aliasMap };
 }
 
 class OrdinaryArgParser {
-  readonly configMap: ConfigMap;
-  readonly aliasMap: AliasMap;
-  result: ParseResult;
+    readonly configMap: ConfigMap;
+    readonly aliasMap: AliasMap;
+    result: ParseResult;
 
-  constructor(configMap: ConfigMap, aliasMap: AliasMap) {
-    this.configMap = configMap;
-    this.aliasMap = aliasMap;
-    this.result = { _: [] };
-  }
-
-  getAliasVerboseName(alias: string) {
-    return this.aliasMap.get(alias);
-  }
-
-  getOptionConfig(option: string) {
-    // is this an alias?
-    const configKey = this.getAliasVerboseName(option) || option;
-    return this.configMap.get(configKey);
-  }
-
-  storeOptionValue(
-    option: string,
-    value: unknown,
-    duplicateHandling: DuplicateHandling = "last-wins",
-  ) {
-    if (Object.hasOwn(this.result, option) && this.result[option] !== null) {
-      const currentValue = this.result[option];
-
-      if (duplicateHandling === "first-wins") {
-        return;
-      }
-
-      if (duplicateHandling === "last-wins" && currentValue) {
-        this.result[option] = value;
-        return;
-      }
-
-      // Accumulate
-      if (Array.isArray(currentValue)) {
-        this.result[option] = [...currentValue, value];
-        return;
-      }
-
-      this.result[option] = [currentValue, value];
-    } else {
-      this.result[option] = value;
-    }
-  }
-
-  // Defaults are applied when an option was not present at all.
-  applyDefaultValues() {
-    for (const [name, cfg] of this.configMap.entries()) {
-      if (cfg.default !== undefined && !Object.hasOwn(this.result, name)) {
-        this.result[name] = cfg.default;
-      }
-    }
-  }
-
-  applyTransforms() {
-    Object.entries(this.result).forEach(([key, value]) => {
-      const transform = this.getOptionConfig(key)?.transform;
-
-      if (transform) {
-        this.result[key] = transform(value);
-      }
-    });
-  }
-
-  // Returns updated index (may consume the next argv element for required args).
-  parseLongOption(content: string, args: string[], i: number): number {
-    const { rawOption, inlineValue } = parseEqualsFormat(content);
-
-    // Handle GNU-style "--no-foo" for boolean flags
-    if (isNegativeOption(rawOption)) {
-      const config = this.getOptionConfig(extractNegativeOption(rawOption));
-      if (!config) {
-        throw new UnknownArgumentError(rawOption, args);
-      }
-
-      if (config.kind !== "flag") {
-        return i;
-      }
-
-      this.storeOptionValue(config.name, false, config.duplicateHandling);
-      return i;
+    constructor(configMap: ConfigMap, aliasMap: AliasMap) {
+        this.configMap = configMap;
+        this.aliasMap = aliasMap;
+        this.result = { _: [] };
     }
 
-    const config = this.getOptionConfig(rawOption);
-    if (!config) {
-      throw new UnknownArgumentError(rawOption, args);
+    getAliasVerboseName(alias: string) {
+        return this.aliasMap.get(alias);
     }
 
-    const { name, kind, duplicateHandling } = config;
-
-    if (kind === "flag") {
-      // Boolean flag
-      // Works with common mistakes like --flag=[false | true]
-
-      if (inlineValue === "false") {
-        this.storeOptionValue(name, false, duplicateHandling);
-      } else {
-        this.storeOptionValue(name, true, duplicateHandling);
-      }
-
-      return i;
+    getOptionConfig(option: string) {
+        // is this an alias?
+        const configKey = this.getAliasVerboseName(option) || option;
+        return this.configMap.get(configKey);
     }
 
-    // Required argument
-    if (inlineValue !== undefined) {
-      this.storeOptionValue(name, inlineValue, duplicateHandling);
-      return i;
-    } else if (isNextArgValue(args, i)) {
-      this.storeOptionValue(name, args[++i], duplicateHandling); // consume the value and advance iterator
-    } else {
-      throw new MissingValueError(name, args);
-    }
+    storeOptionValue(
+        option: string,
+        value: unknown,
+        duplicateHandling: DuplicateHandling = "last-wins",
+    ) {
+        if (
+            Object.hasOwn(this.result, option) &&
+            this.result[option] !== null
+        ) {
+            const currentValue = this.result[option];
 
-    return i;
-  }
+            if (duplicateHandling === "first-wins") {
+                return;
+            }
 
-  // Returns updated index (may consume the next argv element for required args).
-  parseShortOption(content: string, args: string[], i: number): number {
-    const { rawOption, inlineValue } = parseEqualsFormat(content);
+            if (duplicateHandling === "last-wins" && currentValue) {
+                this.result[option] = value;
+                return;
+            }
 
-    // Shortname options - could be single or grouped
-    const optionsToProcess = expandShortCluster(rawOption);
+            // Accumulate
+            if (Array.isArray(currentValue)) {
+                this.result[option] = [...currentValue, value];
+                return;
+            }
 
-    for (let j = 0; j < optionsToProcess.length; j++) {
-      const arg = optionsToProcess[j];
-      const config = this.getOptionConfig(arg);
-
-      if (!config) {
-        throw new UnknownArgumentError(arg, args);
-      }
-
-      const { name, kind, duplicateHandling } = config;
-
-      // Boolean flag
-      if (kind === "flag") {
-        if (inlineValue === "false") {
-          this.storeOptionValue(name, false, duplicateHandling);
+            this.result[option] = [currentValue, value];
         } else {
-          this.storeOptionValue(name, true, duplicateHandling);
+            this.result[option] = value;
+        }
+    }
+
+    // Defaults are applied when an option was not present at all.
+    applyDefaultValues() {
+        for (const [name, cfg] of this.configMap.entries()) {
+            if (
+                cfg.default !== undefined &&
+                !Object.hasOwn(this.result, name)
+            ) {
+                this.result[name] = cfg.default;
+            }
+        }
+    }
+
+    applyTransforms() {
+        Object.entries(this.result).forEach(([key, value]) => {
+            const transform = this.getOptionConfig(key)?.transform;
+
+            if (transform) {
+                this.result[key] = transform(value);
+            }
+        });
+    }
+
+    // Returns updated index (may consume the next argv element for required args).
+    parseLongOption(content: string, args: string[], i: number): number {
+        const { rawOption, inlineValue } = parseEqualsFormat(content);
+
+        // Handle GNU-style "--no-foo" for boolean flags
+        if (isNegativeOption(rawOption)) {
+            const config = this.getOptionConfig(
+                extractNegativeOption(rawOption),
+            );
+            if (!config) {
+                throw new UnknownArgumentError(rawOption, args);
+            }
+
+            if (config.kind !== "flag") {
+                return i;
+            }
+
+            this.storeOptionValue(config.name, false, config.duplicateHandling);
+            return i;
         }
 
-        continue;
-      }
+        const config = this.getOptionConfig(rawOption);
+        if (!config) {
+            throw new UnknownArgumentError(rawOption, args);
+        }
 
-      // Required argument
-      if (j === optionsToProcess.length - 1) {
-        // Last option
+        const { name, kind, duplicateHandling } = config;
+
+        if (kind === "flag") {
+            // Boolean flag
+            // Works with common mistakes like --flag=[false | true]
+
+            if (inlineValue === "false") {
+                this.storeOptionValue(name, false, duplicateHandling);
+            } else {
+                this.storeOptionValue(name, true, duplicateHandling);
+            }
+
+            return i;
+        }
+
+        // Required argument
         if (inlineValue !== undefined) {
-          this.storeOptionValue(name, inlineValue, duplicateHandling);
+            this.storeOptionValue(name, inlineValue, duplicateHandling);
+            return i;
         } else if (isNextArgValue(args, i)) {
-          this.storeOptionValue(name, args[++i], duplicateHandling); // consume the value and advance iterator
+            this.storeOptionValue(name, args[++i], duplicateHandling); // consume the value and advance iterator
         } else {
-          throw new MissingValueError(name, args);
+            throw new MissingValueError(name, args);
         }
-      } else {
-        // use eveything after the option as value
-        // e.g. "-oattached.txt" becomes o: attached.txt
-        this.storeOptionValue(
-          name,
-          optionsToProcess.slice(j + 1).join(""),
-          duplicateHandling,
-        );
-        break;
-      }
+
+        return i;
     }
 
-    return i;
-  }
+    // Returns updated index (may consume the next argv element for required args).
+    parseShortOption(content: string, args: string[], i: number): number {
+        const { rawOption, inlineValue } = parseEqualsFormat(content);
 
-  parse(args: string[] = []) {
-    for (let i = 0; i < args.length; i++) {
-      const arg = args[i];
+        // Shortname options - could be single or grouped
+        const optionsToProcess = expandShortCluster(rawOption);
 
-      // "--" terminates option parsing
-      if (arg === "--") {
-        this.result._.push(...args.slice(i + 1));
-        break;
-      }
+        for (let j = 0; j < optionsToProcess.length; j++) {
+            const arg = optionsToProcess[j];
+            const config = this.getOptionConfig(arg);
 
-      if (isOptionArg(arg)) {
-        const { hyphenCount, content } = stripHyphens(arg);
+            if (!config) {
+                throw new UnknownArgumentError(arg, args);
+            }
 
-        if (hyphenCount === 2) {
-          i = this.parseLongOption(content, args, i);
+            const { name, kind, duplicateHandling } = config;
 
-          continue;
+            // Boolean flag
+            if (kind === "flag") {
+                if (inlineValue === "false") {
+                    this.storeOptionValue(name, false, duplicateHandling);
+                } else {
+                    this.storeOptionValue(name, true, duplicateHandling);
+                }
+
+                continue;
+            }
+
+            // Required argument
+            if (j === optionsToProcess.length - 1) {
+                // Last option
+                if (inlineValue !== undefined) {
+                    this.storeOptionValue(name, inlineValue, duplicateHandling);
+                } else if (isNextArgValue(args, i)) {
+                    this.storeOptionValue(name, args[++i], duplicateHandling); // consume the value and advance iterator
+                } else {
+                    throw new MissingValueError(name, args);
+                }
+            } else {
+                // use eveything after the option as value
+                // e.g. "-oattached.txt" becomes o: attached.txt
+                this.storeOptionValue(
+                    name,
+                    optionsToProcess.slice(j + 1).join(""),
+                    duplicateHandling,
+                );
+                break;
+            }
         }
 
-        if (hyphenCount === 1) {
-          i = this.parseShortOption(content, args, i);
-        }
-      } else {
-        // Positional argument
-        this.result._.push(arg);
-      }
+        return i;
     }
 
-    this.applyDefaultValues();
-    this.applyTransforms();
+    parse(args: string[] = []) {
+        for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
 
-    return this.result;
-  }
+            // "--" terminates option parsing
+            if (arg === "--") {
+                this.result._.push(...args.slice(i + 1));
+                break;
+            }
+
+            if (isOptionArg(arg)) {
+                const { hyphenCount, content } = stripHyphens(arg);
+
+                if (hyphenCount === 2) {
+                    i = this.parseLongOption(content, args, i);
+
+                    continue;
+                }
+
+                if (hyphenCount === 1) {
+                    i = this.parseShortOption(content, args, i);
+                }
+            } else {
+                // Positional argument
+                this.result._.push(arg);
+            }
+        }
+
+        this.applyDefaultValues();
+        this.applyTransforms();
+
+        return this.result;
+    }
 }
 
 /**
@@ -321,11 +329,11 @@ class OrdinaryArgParser {
  */
 
 export function ordinaryArgParser(
-  args: string[] = [],
-  optionsConfig: OptionsConfig = [],
+    args: string[] = [],
+    optionsConfig: OptionsConfig = [],
 ) {
-  const { configMap, aliasMap } = buildConfigMaps(optionsConfig);
-  return new OrdinaryArgParser(configMap, aliasMap).parse(args);
+    const { configMap, aliasMap } = buildConfigMaps(optionsConfig);
+    return new OrdinaryArgParser(configMap, aliasMap).parse(args);
 }
 
 export default ordinaryArgParser;
