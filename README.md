@@ -49,7 +49,28 @@ You'll see:
 }
 ```
 
-For browser or ES module environments, import the module and pass your command string split into an array:
+### TypeScript
+
+```typescript
+// cli.ts
+import {
+    ordinaryArgParser,
+    type OptionsConfig,
+    type ParseResult,
+} from "ordinary-arg-parser";
+
+const config: OptionsConfig = [
+    { name: 'all', kind: 'flag', alias: 'a' },
+    { name: 'message', kind: 'value', alias: 'm', default: '' },
+    { name: 'verify', kind: 'flag', default: true },
+    { name: 'author', kind: 'value', default: '' }
+];
+
+const result: ParseResult = ordinaryArgParser(process.argv.slice(2), config);
+console.dir(result);
+```
+
+### Browser
 
 ```typescript
 import { ordinaryArgParser } from "ordinary-arg-parser";
@@ -99,7 +120,7 @@ The parser recognizes standard GNU-style argument patterns:
 | Short attached   | `-ofile.txt`        | Value attached               |
 | Long with equals | `--output=file.txt` | Equals syntax                |
 | Long with space  | `--output file.txt` | Space-separated              |
-| Negation         | `--no-verify`       | Sets flag to false           |
+| Negation         | `--no-verify`       | Sets a `kind: "flag"` option to false |
 | Terminator       | `--`                | End options, rest positional |
 
 #### Numeric Values
@@ -127,22 +148,23 @@ The ordinary-arg-parser throws errors with a `code` property and a `toJSON()` me
 **MissingValueError** (`code: 'MISSING_VALUE'`) is thrown when an argument with `kind: 'value'` doesn't receive a value. Like the unknown argument error, it includes both the `argument` and `rawArgs` properties.
 
 ```typescript
+import {
+    ordinaryArgParser,
+    UnknownArgumentError,
+    MissingValueError,
+} from "ordinary-arg-parser";
+
 try {
     const args = ordinaryArgParser(process.argv.slice(2), config);
     // Use parsed args...
-} catch (error) {
-    if (error.code === "UNKNOWN_ARGUMENT") {
-        console.error(`Error: Unknown option '${error.argument}'`);
+} catch (e) {
+    if (e instanceof UnknownArgumentError) {
+        console.error(`Error: Unknown option '${e.argument}'`);
         console.error("Run with --help to see available options.");
+    } else if (e instanceof MissingValueError) {
+        console.error(`Error: ${e.argument} requires a value`);
+        console.error(`Example: mytool ${e.argument} <value>`);
     }
-
-    if (error.code === "MISSING_VALUE") {
-        console.error(`Error: ${error.argument} requires a value`);
-        console.error(`Example: mytool ${error.argument} <value>`);
-    }
-
-    // Log structured error data to your telemetry system
-    logger.error("Argument parsing failed", error.toJSON());
     process.exit(1);
 }
 ```
